@@ -1,4 +1,4 @@
-# Auto Rebuild DLL Plugin
+# @vergiss/Auto Rebuild DLL Plugin
 
 A Webpack Plugin for automatically rebuild dll libraries after they had been upgraded
 
