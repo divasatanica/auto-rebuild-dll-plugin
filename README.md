@@ -1,18 +1,23 @@
 # Auto Rebuild DLL Plugin
 
-用于在使用了 `DllPlugin` 的 `Webpack` 构建项目中自动重建 `DLL` 库的插件。
+A Webpack Plugin for automatically rebuild dll libraries after they had been upgraded
 
 
 #### Usage
 
-目前配置项只有两个，
+Now it got only two config item:
 
-1. dllConfig: Object    用于打包 DLL 的 Webpack 配置
-2. debug: Boolean       表示是否需要输出 debug 信息，用于调试插件出现的问题
+1. dllConfig: Object    the configuration used for webpack building dll
+2. debug: Boolean       need debug message output or not
 
-配置项可以直接参考用 `Webpack` 打包 `Dll` 时的配置项，例如：
+The config you used while building dll with webpack can directly be used as this `dllConfig`'s value.
+
+Here's the Example:
 
 ```js
+/**
+ *  webpack.dll.config.js 
+ */
 module.exports = {
 
     mode: "production",
@@ -40,9 +45,11 @@ module.exports = {
 }
 ```
 
-将以上导出的配置项作为 dllConfig 传入：
 
 ```js
+/**
+ *  webpack.config.js
+ */
 const DLLConfig = require('./webpack.dll.config.js');
 {
     ...others,
@@ -59,4 +66,4 @@ const DLLConfig = require('./webpack.dll.config.js');
 
 #### TODO
 
-- [ ] 目前基于 package.json 的版本标识符来比较依赖库是否已经更新，不够准确，需要找到一个更好的办法
+Now we just judge whether the dependencies had been upgraded by its `package.json` version identifier and it's not accurate enough. The identifier like `\^1.2.3` means a version range instead of an exact version so we have to look for a better way.
