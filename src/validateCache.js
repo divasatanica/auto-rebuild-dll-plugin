@@ -16,8 +16,15 @@ export default settings => {
     const infoLogger = createLogger(debug, LEVEL_INFO);
     const prevPkgPath = path.join(cacheDir, "package.json.hash"),
         entries = Object.keys(dllConfig.entry).reduce((acc, curr) => {
-            return [...acc, ...dllConfig.entry[curr]];
-        }, []);
+            let vendorMapper = (vendorName, vendor) => vendor.reduce((acc, curr) => ({
+                ...acc,
+                [curr]: vendorName
+            }), {});
+            return {
+                ...acc,
+                ...vendorMapper(curr, dllConfig.entry[curr])
+            };
+        }, {});
     
     /**
      * Simply compare the version identifier to judge whether the dependencies
@@ -25,14 +32,24 @@ export default settings => {
      * 
      * @param {Object} oldPkg the cached package.json
      * @param {Object} pkg the current package.json
-     * @param {Array} dependencies the dependecies that configured in dllConfig
+     * @param {Array<String>} dependencies the dependecies that configured in dllConfig
+     * @returns {{isPkgChanged: Boolean, changedPkgName: Array<String>}} validation results
      */
-    const validateDependencies = (oldPkg = {}, pkg = {}, dependencies) => dependencies.some(item => {
-        infoLogger(`oldPkgItem: ${oldPkg[item]}`);
-        infoLogger(`pkgItem: ${pkg[item]}`);
-        infoLogger(`itemName: ${item}`);
-        return oldPkg[item] !== pkg[item]
-    });
+    const validateDependencies = (oldPkg = {}, pkg = {}, dependencies) => {
+        let changedPkgName = [];
+        dependencies.forEach(item => {
+            infoLogger(`oldPkgItem: ${oldPkg[item]}`);
+            infoLogger(`pkgItem: ${pkg[item]}`);
+            infoLogger(`itemName: ${item}`);
+            if (oldPkg[item] !== pkg[item]) {
+                changedPkgName.push(entries[item]);
+            }
+        });
+        return {
+            isPkgChanged: changedPkgName.length > 0,
+            changedPkgName: [...new Set(changedPkgName)]
+        };
+    };
 
     return Promise.all([
         fs.lstatAsync(path.join(cacheDir, "package.json.hash")).catch(errLogger),
@@ -55,18 +72,32 @@ export default settings => {
         // infoLogger(`oldPkgHash is ${oldPkg.dependencies}`);
         // infoLogger(`pkgHash is ${pkg.dependencies}`);
 
+        let result = {
+            isPkgChanged: true,
+            changedPkgName: []
+        };
+
         if (oldPkg) {
-            isPkgChanged = validateDependencies(oldPkg, pkg.dependencies, entries);
+            result = validateDependencies(oldPkg, pkg.dependencies, Object.keys(entries));
+            isPkgChanged = result.isPkgChanged;
         }
 
         infoLogger(`isPkgChanged ? ${isPkgChanged}`);
 
         if (buildHashDirExist && !isPkgChanged) {
-            return true;
+            return {
+                isPkgChanged,
+                changedPkgName: []
+            };
         }
 
+        let dllEntryHash = Object.keys(entries).reduce((acc, curr) => ({
+            ...acc,
+            [curr]: pkg.dependencies[curr]
+        }), {});
+
         return makeDir(cacheDir).then(() => {
-            fs.writeFileAsync(prevPkgPath, JSON.stringify(pkg.dependencies))
-        }).then(() => false);
+            fs.writeFileAsync(prevPkgPath, JSON.stringify(dllEntryHash))
+        }).then(() => result);
     })
 }

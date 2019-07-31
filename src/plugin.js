@@ -1,7 +1,6 @@
 import webpack from 'webpack';
 import isEmpty from 'lodash/isEmpty';
 
-import normalizeConfig from './normalizeConfig';
 import createLogger from './share/logger';
 import validateCache from './validateCache';
 import { runCompiler } from './compileDll';
@@ -23,12 +22,25 @@ class AutoRebuildDllPlugin {
         }
 
         const rebuildDll = (compiler, callback) => {
-            validateCache(settings).then(isValid => {
-                if (isValid) {
+            validateCache(settings).then(({ isPkgChanged, changedPkgName }) => {
+                let config = dllConfig;
+                if (!isPkgChanged) {
                     return callback();
                 }
+                if (isPkgChanged && changedPkgName.length > 0) {
+                    /**
+                     * If isPkgChanged is true and changedPkgName array is not empty,
+                     * specify the changed library to be rebuilt in webpack
+                     */
+                    config.entry = changedPkgName.reduce((acc, curr) => {
+                        return {
+                            ...acc,
+                            [curr]: dllConfig.entry[curr]
+                        }
+                    }, {});
+                }
                 return Promise.resolve().then(() => runCompiler(
-                    () => webpack(normalizeConfig(dllConfig))
+                    () => webpack(config)
                 )).then(() => callback());
             }).catch(errLogger);
         };
