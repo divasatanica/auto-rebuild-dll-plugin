@@ -1,5 +1,6 @@
 import webpack from 'webpack';
 import isEmpty from 'lodash/isEmpty';
+import once from 'lodash/once';
 
 import createLogger from './share/logger';
 import validateCache from './validateCache';
@@ -21,7 +22,7 @@ class AutoRebuildDllPlugin {
             return;
         }
 
-        const rebuildDll = (compiler, callback) => {
+        const rebuildDll = once((compiler, callback) => {
             validateCache(settings).then(({ isPkgChanged, changedPkgName }) => {
                 let config = dllConfig;
                 if (!isPkgChanged) {
@@ -43,9 +44,10 @@ class AutoRebuildDllPlugin {
                     () => webpack(config)
                 )).then(() => callback());
             }).catch(errLogger);
-        };
+        });
 
         compiler.hooks.run.tapAsync("AutoRebuildDllPlugin", rebuildDll);
+        compiler.hooks.watchRun.tapAsync("AutoRebuildDllPlugin", rebuildDll);
     }
 }
 
