@@ -1,6 +1,6 @@
 {
   "name": "@vergiss/auto-rebuild-dll-plugin",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "A Webpack plugin for rebuilding dll library",
   "main": "lib/index.js",
   "scripts": {
