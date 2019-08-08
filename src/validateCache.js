@@ -51,17 +51,17 @@ export default settings => {
         };
     };
 
+    const catchErrorWithLogger = err => {
+        errLogger(err);
+        return null;
+    }
+
     return Promise.all([
-        fs.lstatAsync(path.join(cacheDir, "package.json.hash")).catch(errLogger),
-        fs.readFileAsync(prevPkgPath).catch(err => {
-            errLogger(err);
-            return null;
-        }),
-        readPkg(settings.context).catch(err => {
-            errLogger(err);
-            return null;
-        })
-    ]).then(([buildHashDirExist, prevPkgHash, pkg]) => {
+        fs.lstatAsync(dllConfig.output.path).catch(catchErrorWithLogger),
+        fs.lstatAsync(path.join(cacheDir, "package.json.hash")).catch(catchErrorWithLogger),
+        fs.readFileAsync(prevPkgPath).catch(catchErrorWithLogger),
+        readPkg(settings.context).catch(catchErrorWithLogger)
+    ]).then(([dllOutputDirExist, buildHashDirExist, prevPkgHash, pkg]) => {
 
         prevPkgHash = prevPkgHash || "{}";
         infoLogger(`prevPkgHash is ${prevPkgHash}`);
@@ -73,18 +73,19 @@ export default settings => {
         // infoLogger(`pkgHash is ${pkg.dependencies}`);
 
         let result = {
-            isPkgChanged: true,
+            isPkgChanged,
             changedPkgName: []
         };
 
-        if (oldPkg) {
+        if (oldPkg && dllOutputDirExist) {
             result = validateDependencies(oldPkg, pkg.dependencies, Object.keys(entries));
             isPkgChanged = result.isPkgChanged;
         }
 
         infoLogger(`isPkgChanged ? ${isPkgChanged}`);
+        infoLogger(`isDllOutputExist ? ${dllOutputDirExist}`);
 
-        if (buildHashDirExist && !isPkgChanged) {
+        if (dllOutputDirExist && buildHashDirExist && !isPkgChanged) {
             return {
                 isPkgChanged,
                 changedPkgName: []
