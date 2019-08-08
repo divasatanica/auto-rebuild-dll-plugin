@@ -1,7 +1,9 @@
 import webpack from 'webpack';
 import isEmpty from 'lodash/isEmpty';
 import once from 'lodash/once';
+import path from 'path';
 
+import normalizeConfig from './normalizeConfig';
 import createLogger from './share/logger';
 import validateCache from './validateCache';
 import { runCompiler } from './compileDll';
@@ -22,9 +24,20 @@ class AutoRebuildDllPlugin {
             return;
         }
 
-        const rebuildDll = once((compiler, callback) => {
+        const getManifestPath = vendor => path.join(dllConfig.output.path, `${vendor}.manifest.json`);
+
+        const attachDllReference = once(compiler => {
+            Object.keys(dllConfig.entry).map(getManifestPath).forEach(item => {
+                new DllReferencePlugin({
+                    manifest: item
+                }).apply(compiler);
+            });
+        });
+
+        const rebuildDll = (compiler, callback) => {
             validateCache(settings).then(({ isPkgChanged, changedPkgName }) => {
                 let config = dllConfig;
+                attachDllReference(compiler);
                 if (!isPkgChanged) {
                     return callback();
                 }
@@ -41,13 +54,12 @@ class AutoRebuildDllPlugin {
                     }, {});
                 }
                 return Promise.resolve().then(() => runCompiler(
-                    () => webpack(config)
+                    () => webpack(normalizeConfig(config))
                 )).then(() => callback());
             }).catch(errLogger);
-        });
+        };
 
         compiler.hooks.run.tapAsync("AutoRebuildDllPlugin", rebuildDll);
-        compiler.hooks.watchRun.tapAsync("AutoRebuildDllPlugin", rebuildDll);
     }
 }
 
