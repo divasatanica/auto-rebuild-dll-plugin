@@ -63,7 +63,11 @@ const DLLConfig = require('./webpack.dll.config.js');
 }
 ```
 
+With this plugin, you can just remove the `DllReferencePlugin` in the config.
+I'll push an example directory later.
 
 #### TODO
 
 Now we just judge whether the dependencies had been upgraded by its `package.json` version identifier and it's not accurate enough. The identifier like `\^1.2.3` means a version range instead of an exact version so we have to look for a better way.
+
+Watch mode is not supported now (maybe supported later), because we consider using this plugin in building not in developing period.
