@@ -1,13 +1,13 @@
-import webpack from 'webpack';
+import webpack, { DllReferencePlugin } from 'webpack';
 import isEmpty from 'lodash/isEmpty';
 import once from 'lodash/once';
 import path from 'path';
 
-import normalizeConfig from './normalizeConfig';
 import createLogger from './share/logger';
 import validateCache from './validateCache';
 import { runCompiler } from './compileDll';
 import { LEVEL_ERROR } from './share/const';
+import normalizeConfig from './normalizeConfig';
 
 class AutoRebuildDllPlugin {
 
